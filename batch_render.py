@@ -36,9 +36,7 @@ bl_info = {
 """
 Usage:
 
-
 Launch from "Render > Render > Batch render"
-
 
 Additional links:
     Author Site: www.jessekaukonen.net
@@ -48,51 +46,90 @@ Additional links:
 import bpy
 from bpy.props import PointerProperty, StringProperty, BoolProperty, EnumProperty, IntProperty, CollectionProperty
 
+# Pair<int,int> type since there isn't one by default 
 class IntPair(bpy.types.PropertyGroup):
     value1 = bpy.props.IntProperty(name="First value of a pair", default=0)
     value2 = bpy.props.IntProperty(name="Second value of a pair", default=0)
+    markedForDeletion = bpy.props.BoolProperty(name="Toggled on if this must be deleted", default=False)
 
+# Container that records what frame ranges are to be rendered
 class BatchRenderData(bpy.types.PropertyGroup):
     frame_ranges = bpy.props.CollectionProperty(name="Container for frame ranges defined for rendering", type=IntPair)
-    number = bpy.props.IntProperty(name="Number of sequences to render", default=1)
+    active_range = bpy.props.IntProperty(name="Index for currently processed range", default=0)
 
-#
-# A panel in the render section of properties space
-#
-class BatchRenderPanel(bpy.types.Panel):
-    bl_label = "Batch Render"
-    bl_space_type= "PROPERTIES"
-    bl_region_type = "WINDOW"
+class RenderButtonsPanel():
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
     bl_context = "render"
 
+# A panel in the render section of properties space
+class BatchRenderPanel(RenderButtonsPanel, bpy.types.Panel):
+    bl_label = "Batch Render"
+
     def draw(self, context):
+        layout = self.layout
         batcher = bpy.context.scene.batch_render
-        self.layout.operator("batch_render.render", text="Batch render")
-        self.layout.operator("batch_render.add_new", text="Add new range")
+        layout.operator("batch_render.render", text="Launch rendering")
+        layout.operator("batch_render.add_new", text="Add new set")
+        layout.operator('batch_render.remove', text="Delete selected", icon='CANCEL')
+        layout.row()
+        count = 0
+        # Print a control knob for every item currently defined
+        for it in batcher.frame_ranges:
+            count += 1
+            layout.label(text="Batch " + str(count))
+            layout.prop(it, 'value1', text="Start frame")
+            layout.prop(it, 'value2', text="End frame")
+            layout.prop(it, 'markedForDeletion', text="Delete")
+            layout.row()
 
-import sys
-
+# Operator that starts the rendering
 class OBJECT_OT_BatchRenderButton(bpy.types.Operator):
     bl_idname = "batch_render.render"
     bl_label = "Batch Render"
     
     def execute(self, context):
-        print("oioi")
-        sys.stdout.flush()
+        batcher = bpy.context.scene.batch_render
+        sce = bpy.context.scene
+        for it in batcher.frame_ranges:
+            if (it.value2 <= it.value1):
+                print("Skipped batch " + str(it.value1) + " - " + str(it.value2) + ": Start frame greater than end frame")
+                continue
+            print("Rendering frames: " + str(it.value1) + " - " + str(it.value2))
+            sce.frame_start = it.value1
+            sce.frame_end = it.value2
+            bpy.ops.render.render(animation=True)
+        sum = 0
+        for it in batcher.frame_ranges:
+            sum += (it.value2 - it.value1)
+        print("Rendered " + str(len(batcher.frame_ranges)) + " batches containing " + str(sum) + " frames")
         return {'FINISHED'}
 
+# Operator that adds a new frame range to be rendered
 class OBJECT_OT_BatchRenderAddNew(bpy.types.Operator):
     bl_idname = "batch_render.add_new"
-    bl_label = "Add new range"
+    bl_label = "Add new set"
     
     def execute(self, context):
-        print("aiai")
-        sys.stdout.flush()
         batcher = bpy.context.scene.batch_render
         batcher.frame_ranges.add()
+        last_item = len(batcher.frame_ranges)-1
         batcher.frame_ranges[last_item].value1 = 1
         batcher.frame_ranges[last_item].value2 = 2
         
+        return {'FINISHED'}
+
+class OBJECT_OT_BatchRenderRemove(bpy.types.Operator):
+    bl_idname = "batch_render.remove"
+    bl_label = "Remove selected sets"
+    
+    def execute(self, context):
+        batcher = bpy.context.scene.batch_render
+        i = 0
+        for it in batcher.frame_ranges:
+            if (it.markedForDeletion == True):
+                batcher.frame_ranges.remove(i)
+            i += 1
         return {'FINISHED'}
 
 def register():
