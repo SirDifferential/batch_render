@@ -46,15 +46,18 @@ Additional links:
 import bpy
 from bpy.props import PointerProperty, StringProperty, BoolProperty, EnumProperty, IntProperty, CollectionProperty
 
-# Pair<int,int> type since there isn't one by default 
-class IntPair(bpy.types.PropertyGroup):
-    value1 = bpy.props.IntProperty(name="First value of a pair", default=0)
-    value2 = bpy.props.IntProperty(name="Second value of a pair", default=0)
+# Container that keeps track of the settings used for this render batch
+class BatchSettings(bpy.types.PropertyGroup):
+    start_frame = bpy.props.IntProperty(name="Starting frame of this batch", default=0)
+    end_frame = bpy.props.IntProperty(name="Ending frame of this batch", default=1)
+    reso_x = bpy.props.IntProperty(name="X resoution of this batch", default=1920, min=1, max=10000, soft_min=1, soft_max=10000)
+    reso_y = bpy.props.IntProperty(name="Y resolution of this batch", default=1080, min=1, max=10000, soft_min=1, soft_max=10000)
+    samples = IntProperty(name='Samples', description='Number of samples that is used (Cycles only)', min=1, max=1000000, soft_min=1, soft_max=100000, default=100)
     markedForDeletion = bpy.props.BoolProperty(name="Toggled on if this must be deleted", default=False)
 
 # Container that records what frame ranges are to be rendered
 class BatchRenderData(bpy.types.PropertyGroup):
-    frame_ranges = bpy.props.CollectionProperty(name="Container for frame ranges defined for rendering", type=IntPair)
+    frame_ranges = bpy.props.CollectionProperty(name="Container for frame ranges defined for rendering", type=BatchSettings)
     active_range = bpy.props.IntProperty(name="Index for currently processed range", default=0)
 
 class RenderButtonsPanel():
@@ -78,8 +81,11 @@ class BatchRenderPanel(RenderButtonsPanel, bpy.types.Panel):
         for it in batcher.frame_ranges:
             count += 1
             layout.label(text="Batch " + str(count))
-            layout.prop(it, 'value1', text="Start frame")
-            layout.prop(it, 'value2', text="End frame")
+            layout.prop(it, 'start_frame', text="Start frame")
+            layout.prop(it, 'end_frame', text="End frame")
+            layout.prop(it, 'reso_x', text="Resolution X")
+            layout.prop(it, 'reso_y', text="Resolution Y")
+            layout.prop(it, 'samples', text="Samples (if using Cycles)")
             layout.prop(it, 'markedForDeletion', text="Delete")
             layout.row()
 
@@ -91,18 +97,26 @@ class OBJECT_OT_BatchRenderButton(bpy.types.Operator):
     def execute(self, context):
         batcher = bpy.context.scene.batch_render
         sce = bpy.context.scene
+        rd = sce.render
         for it in batcher.frame_ranges:
-            if (it.value2 <= it.value1):
-                print("Skipped batch " + str(it.value1) + " - " + str(it.value2) + ": Start frame greater than end frame")
+            if (it.end_frame <= it.start_frame):
+                print("Skipped batch " + str(it.start_frame) + " - " + str(it.end_frame) + ": Start frame greater than end frame")
                 continue
-            print("Rendering frames: " + str(it.value1) + " - " + str(it.value2))
-            sce.frame_start = it.value1
-            sce.frame_end = it.value2
+            if (rd.engine == 'CYCLES'):
+                print("Rendering frames: " + str(it.start_frame) + " - " + str(it.end_frame) + " at resolution " + str(it.reso_x) + "x" + str(it.reso_y) + " with " + str(it.samples) + " samples")
+            else:
+                print("Rendering frames: " + str(it.start_frame) + " - " + str(it.end_frame) + " at resolution " + str(it.reso_x) + "x" + str(it.reso_y))
+            sce.frame_start = it.start_frame
+            sce.frame_end = it.end_frame
+            rd.resolution_x = it.reso_x
+            rd.resolution_y = it.reso_y
+            if (rd.engine == 'CYCLES'):
+                sce.cycles.samples = it.samples
             bpy.ops.render.render(animation=True)
         sum = 0
         for it in batcher.frame_ranges:
-            if (it.value2 >= it.value1):
-                sum += (it.value2 - it.value1)
+            if (it.end_frame >= it.start_frame):
+                sum += (it.end_frame - it.start_frame)
         print("Rendered " + str(len(batcher.frame_ranges)) + " batches containing " + str(sum) + " frames")
         return {'FINISHED'}
 
@@ -113,10 +127,14 @@ class OBJECT_OT_BatchRenderAddNew(bpy.types.Operator):
     
     def execute(self, context):
         batcher = bpy.context.scene.batch_render
+        rd = bpy.context.scene.render
         batcher.frame_ranges.add()
         last_item = len(batcher.frame_ranges)-1
-        batcher.frame_ranges[last_item].value1 = 1
-        batcher.frame_ranges[last_item].value2 = 2
+        batcher.frame_ranges[last_item].start_frame = 1
+        batcher.frame_ranges[last_item].end_frame = 2
+        batcher.frame_ranges[last_item].samples = bpy.context.scene.cycles.samples
+        batcher.frame_ranges[last_item].reso_x = rd.resolution_x
+        batcher.frame_ranges[last_item].reso_y = rd.resolution_y
         
         return {'FINISHED'}
 
