@@ -101,7 +101,8 @@ class OBJECT_OT_BatchRenderButton(bpy.types.Operator):
             bpy.ops.render.render(animation=True)
         sum = 0
         for it in batcher.frame_ranges:
-            sum += (it.value2 - it.value1)
+            if (it.value2 >= it.value1):
+                sum += (it.value2 - it.value1)
         print("Rendered " + str(len(batcher.frame_ranges)) + " batches containing " + str(sum) + " frames")
         return {'FINISHED'}
 
