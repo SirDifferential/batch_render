@@ -53,7 +53,7 @@ class BatchSettings(bpy.types.PropertyGroup):
     reso_x = bpy.props.IntProperty(name="X resolution", description="resoution of this batch", default=1920, min=1, max=10000, soft_min=1, soft_max=10000)
     reso_y = bpy.props.IntProperty(name="Y resoliution", description="resolution of this batch", default=1080, min=1, max=10000, soft_min=1, soft_max=10000)
     samples = IntProperty(name='Samples', description='Number of samples that is used (Cycles only)', min=1, max=1000000, soft_min=1, soft_max=100000, default=100)
-    #camera = StringProperty(name="Camera", description="Camera to be used for rendering this patch", default="")
+    camera = StringProperty(name="Camera", description="Camera to be used for rendering this patch", default="")
     markedForDeletion = bpy.props.BoolProperty(name="Toggled on if this must be deleted", default=False)
 
 # Container that records what frame ranges are to be rendered
@@ -65,6 +65,30 @@ class RenderButtonsPanel():
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "render"
+
+# Updates a list of objects used by a drop down menu
+def updateObjectList():
+    cameras = []
+    for index, obj in enumerate(bpy.context.scene.objects):
+        if (obj.type == 'CAMERA'):
+            cameras.append((str(index), obj.name, str(index)))
+    bpy.types.Scene.camera_list = EnumProperty(name="Cameras", description="asd", items=cameras, default='0')
+
+# Box for selecting objects in a drop down menu
+# Thanks to Peter Roelants
+class CUSTOM_OT_SelectObjectButton(bpy.types.Operator):
+    bl_idname = "batch_render.select_object"
+    bl_label = "Select"
+    bl_description = "Select the chosen object"
+
+    def invoke(self, context, event):
+        updateObjectList()
+        obj = bpy.context.scene.objects[int(bpy.context.scene.camera_list)]
+        for o in bpy.data.objects:
+            print(o.name)
+        #obj.selected = True
+        bpy.context.scene.objects.active = obj
+        return {'FINISHED'}
 
 # A panel in the render section of properties space
 class BatchRenderPanel(RenderButtonsPanel, bpy.types.Panel):
@@ -87,8 +111,9 @@ class BatchRenderPanel(RenderButtonsPanel, bpy.types.Panel):
             layout.prop(it, 'reso_x', text="Resolution X")
             layout.prop(it, 'reso_y', text="Resolution Y")
             layout.prop(it, 'samples', text="Samples (if using Cycles)")
-            #layout.prop(it, 'camera', text="Camera")
-            #layout.prop(bpy.context.scene, "objects")
+            layout.prop(it, 'camera', text="Camera")
+            layout.prop(bpy.context.scene, "camera_list", text="Objects")
+            layout.operator("batch_render.select_object", "objects")
             layout.prop(it, 'markedForDeletion', text="Delete")
             layout.row()
 
@@ -175,11 +200,7 @@ class OBJECT_OT_BatchRenderRemove(bpy.types.Operator):
 def register():
     bpy.utils.register_module(__name__)
     bpy.types.Scene.batch_render = PointerProperty(type=BatchRenderData, name='Batch Render', description='Settings used for batch rendering')
-    #bpy.types.Scene.MyList = EnumProperty(
-    #    items = [('one', 'un', 'eine'),
-    #            ('two', 'kaksi', 'de'),
-    #            ('three','kolme', 'asd')]
-    #    name = "asimov")
+    updateObjectList()
 
 def unregister():
     bpy.utils.unregister(__name__)
