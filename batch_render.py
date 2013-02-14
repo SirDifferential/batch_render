@@ -138,17 +138,30 @@ class OBJECT_OT_BatchRenderAddNew(bpy.types.Operator):
         
         return {'FINISHED'}
 
+import copy
+
+# Removes items that have been marked for deletion
 class OBJECT_OT_BatchRenderRemove(bpy.types.Operator):
     bl_idname = "batch_render.remove"
     bl_label = "Remove selected sets"
     
     def execute(self, context):
         batcher = bpy.context.scene.batch_render
-        i = 0
-        for it in batcher.frame_ranges:
-            if (it.markedForDeletion == True):
-                batcher.frame_ranges.remove(i)
-            i += 1
+
+        done = False
+        # Ugh, ugly O(n^2) operation here since it's hard to edit these collectionProperties...
+        # Difficult to remove marked entries from lists when you can't delete while iterating,
+        # and you can't make copies of the objects. Unless it's possible somehow. copy.deepcopy
+        # does not work
+        while (done == False):
+            count = 0
+            for it in batcher.frame_ranges:
+                if (it.markedForDeletion == True):
+                    batcher.frame_ranges.remove(count)
+                    break
+                count += 1
+                if (count == (len(batcher.frame_ranges)-1)):
+                    done = True
         return {'FINISHED'}
 
 def register():
