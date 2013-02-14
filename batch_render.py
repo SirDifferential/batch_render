@@ -24,7 +24,7 @@
 bl_info = {
     "name": "Batch Render",
     "author": "Jesse Kaukonen",
-    "version": (1,0),
+    "version": (1,1),
     "blender": (2, 6, 5),
     "location": "Render > Render",
     "description": "Set up multiple render tasks to be executed in sequence",
@@ -50,9 +50,10 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, EnumPropert
 class BatchSettings(bpy.types.PropertyGroup):
     start_frame = bpy.props.IntProperty(name="Starting frame of this batch", default=0)
     end_frame = bpy.props.IntProperty(name="Ending frame of this batch", default=1)
-    reso_x = bpy.props.IntProperty(name="X resoution of this batch", default=1920, min=1, max=10000, soft_min=1, soft_max=10000)
-    reso_y = bpy.props.IntProperty(name="Y resolution of this batch", default=1080, min=1, max=10000, soft_min=1, soft_max=10000)
+    reso_x = bpy.props.IntProperty(name="X resolution", description="resoution of this batch", default=1920, min=1, max=10000, soft_min=1, soft_max=10000)
+    reso_y = bpy.props.IntProperty(name="Y resoliution", description="resolution of this batch", default=1080, min=1, max=10000, soft_min=1, soft_max=10000)
     samples = IntProperty(name='Samples', description='Number of samples that is used (Cycles only)', min=1, max=1000000, soft_min=1, soft_max=100000, default=100)
+    #camera = StringProperty(name="Camera", description="Camera to be used for rendering this patch", default="")
     markedForDeletion = bpy.props.BoolProperty(name="Toggled on if this must be deleted", default=False)
 
 # Container that records what frame ranges are to be rendered
@@ -86,6 +87,8 @@ class BatchRenderPanel(RenderButtonsPanel, bpy.types.Panel):
             layout.prop(it, 'reso_x', text="Resolution X")
             layout.prop(it, 'reso_y', text="Resolution Y")
             layout.prop(it, 'samples', text="Samples (if using Cycles)")
+            #layout.prop(it, 'camera', text="Camera")
+            #layout.prop(bpy.context.scene, "objects")
             layout.prop(it, 'markedForDeletion', text="Delete")
             layout.row()
 
@@ -110,6 +113,11 @@ class OBJECT_OT_BatchRenderButton(bpy.types.Operator):
             sce.frame_end = it.end_frame
             rd.resolution_x = it.reso_x
             rd.resolution_y = it.reso_y
+
+            # if a camera was specified
+            if (it.camera != None):
+                print("Camera was specified " + str(type(it.camera)))
+                sce.camera = it.camera
             if (rd.engine == 'CYCLES'):
                 sce.cycles.samples = it.samples
             bpy.ops.render.render(animation=True)
@@ -138,8 +146,6 @@ class OBJECT_OT_BatchRenderAddNew(bpy.types.Operator):
         
         return {'FINISHED'}
 
-import copy
-
 # Removes items that have been marked for deletion
 class OBJECT_OT_BatchRenderRemove(bpy.types.Operator):
     bl_idname = "batch_render.remove"
@@ -155,18 +161,25 @@ class OBJECT_OT_BatchRenderRemove(bpy.types.Operator):
         # does not work
         while (done == False):
             count = 0
+            if (len(batcher.frame_ranges) < 1):
+                break
             for it in batcher.frame_ranges:
                 if (it.markedForDeletion == True):
                     batcher.frame_ranges.remove(count)
                     break
                 count += 1
-                if (count == (len(batcher.frame_ranges)-1)):
+                if (count >= (len(batcher.frame_ranges)-1)):
                     done = True
         return {'FINISHED'}
 
 def register():
     bpy.utils.register_module(__name__)
     bpy.types.Scene.batch_render = PointerProperty(type=BatchRenderData, name='Batch Render', description='Settings used for batch rendering')
+    #bpy.types.Scene.MyList = EnumProperty(
+    #    items = [('one', 'un', 'eine'),
+    #            ('two', 'kaksi', 'de'),
+    #            ('three','kolme', 'asd')]
+    #    name = "asimov")
 
 def unregister():
     bpy.utils.unregister(__name__)
