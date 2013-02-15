@@ -55,6 +55,7 @@ class BatchSettings(bpy.types.PropertyGroup):
     reso_percentage = bpy.props.IntProperty(name="percentage", description="Percentage of the resolution at which this batch is rendered", default=100, min=1, max=100, soft_min=1, soft_max=100)
     samples = IntProperty(name='Samples', description='Number of samples that is used (Cycles only)', min=1, max=1000000, soft_min=1, soft_max=100000, default=100)
     camera = StringProperty(name="Camera", description="Camera to be used for rendering this patch", default="")
+    filepath = bpy.props.StringProperty(subtype='FILE_PATH', default="")
     markedForDeletion = bpy.props.BoolProperty(name="Toggled on if this must be deleted", default=False)
 
 # Container that records what frame ranges are to be rendered
@@ -128,6 +129,7 @@ class BatchRenderPanel(RenderButtonsPanel, bpy.types.Panel):
             layout.prop(it, 'reso_percentage', text="Resolution percentage")
             layout.prop(it, 'samples', text="Samples (if using Cycles)")
             layout.prop(it, 'camera', text="Select camera")
+            layout.prop(it, 'filepath', text="Output path")
             #layout.prop(bpy.context.scene, "camera_list", text="Objects")
             #layout.operator("batch_render.select_object", "objects")
             layout.prop(it, 'markedForDeletion', text="Delete")
@@ -162,11 +164,14 @@ class OBJECT_OT_BatchRenderButton(bpy.types.Operator):
             if (rd.engine == 'CYCLES'):
                 sce.cycles.samples = it.samples
             
+            sce.render.filepath = it.filepath
+            
             print("Rendering frames: " + str(it.start_frame) + " - " + str(it.end_frame))
             print("At resolution " + str(it.reso_x) + "x" + str(it.reso_y) + " (" + str(it.reso_percentage) + "%)")
             if (rd.engine == 'CYCLES'):
                 print("With " + str(it.samples) + " samples")
             print("using camera " + bpy.context.scene.camera.name)
+            print("Saving frames in " + it.filepath)
             print("Ok! I'm beginning rendering now. Wait warmly.")
             bpy.ops.render.render(animation=True)
         sum = 0
@@ -192,6 +197,7 @@ class OBJECT_OT_BatchRenderAddNew(bpy.types.Operator):
         batcher.frame_ranges[last_item].reso_x = rd.resolution_x
         batcher.frame_ranges[last_item].reso_y = rd.resolution_y
         batcher.frame_ranges[last_item].camera = bpy.context.scene.camera.name
+        batcher.frame_ranges[last_item].filepath = bpy.context.scene.render.filepath
         
         return {'FINISHED'}
 
