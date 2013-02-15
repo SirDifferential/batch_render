@@ -24,7 +24,7 @@
 bl_info = {
     "name": "Batch Render",
     "author": "Jesse Kaukonen",
-    "version": (1,1),
+    "version": (1,2),
     "blender": (2, 6, 5),
     "location": "Render > Render",
     "description": "Set up multiple render tasks to be executed in sequence",
@@ -126,7 +126,7 @@ class BatchRenderPanel(RenderButtonsPanel, bpy.types.Panel):
         count = 0
         # Print a control knob for every item currently defined
         for it in batcher.frame_ranges:
-            layout.label(text="Batch " + str(count))
+            layout.label(text="Batch " + str(count+1))
             layout.prop(it, 'start_frame', text="Start frame")
             layout.prop(it, 'end_frame', text="End frame")
             layout.prop(it, 'reso_x', text="Resolution X")
