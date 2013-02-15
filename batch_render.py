@@ -145,7 +145,9 @@ class OBJECT_OT_BatchRenderButton(bpy.types.Operator):
         batcher = bpy.context.scene.batch_render
         sce = bpy.context.scene
         rd = sce.render
+        batch_count = 0
         for it in batcher.frame_ranges:
+            batch_count += 1
             print("***********")
             if (it.end_frame <= it.start_frame):
                 print("Skipped batch " + str(it.start_frame) + " - " + str(it.end_frame) + ": Start frame greater than end frame")
@@ -165,6 +167,7 @@ class OBJECT_OT_BatchRenderButton(bpy.types.Operator):
                 sce.cycles.samples = it.samples
             
             sce.render.filepath = it.filepath
+            sce.render.filepath += ("batch_" + str(batch_count) + "_" + str(it.reso_x) + "x" + str(it.reso_y) + "_")
             
             print("Rendering frames: " + str(it.start_frame) + " - " + str(it.end_frame))
             print("At resolution " + str(it.reso_x) + "x" + str(it.reso_y) + " (" + str(it.reso_percentage) + "%)")
