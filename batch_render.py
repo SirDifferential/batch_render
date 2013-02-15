@@ -46,6 +46,10 @@ Additional links:
 import bpy
 from bpy.props import PointerProperty, StringProperty, BoolProperty, EnumProperty, IntProperty, CollectionProperty
 
+# Data structure that contains on/off flags for all layers
+class LayerSelection(bpy.types.PropertyGroup):
+    active = bpy.props.BoolProperty(name="Active", description="Toggle on if the layer must be rendered", default=False)
+
 # Container that keeps track of the settings used for this render batch
 class BatchSettings(bpy.types.PropertyGroup):
     start_frame = bpy.props.IntProperty(name="Starting frame of this batch", default=0)
@@ -56,6 +60,7 @@ class BatchSettings(bpy.types.PropertyGroup):
     samples = IntProperty(name='Samples', description='Number of samples that is used (Cycles only)', min=1, max=1000000, soft_min=1, soft_max=100000, default=100)
     camera = StringProperty(name="Camera", description="Camera to be used for rendering this patch", default="")
     filepath = bpy.props.StringProperty(subtype='FILE_PATH', default="")
+    layers = bpy.props.CollectionProperty(name="layer container", type=LayerSelection)
     markedForDeletion = bpy.props.BoolProperty(name="Toggled on if this must be deleted", default=False)
 
 # Container that records what frame ranges are to be rendered
@@ -130,6 +135,14 @@ class BatchRenderPanel(RenderButtonsPanel, bpy.types.Panel):
             layout.prop(it, 'samples', text="Samples (if using Cycles)")
             layout.prop(it, 'camera', text="Select camera")
             layout.prop(it, 'filepath', text="Output path")
+            layout.label(text="Enabled layers")
+            row = layout.row()
+            i = 0
+            for it2 in it.layers:
+                i += 1
+                row.prop(it2, 'active', text=str(i))
+                if (i % 5 == 0):
+                    row = layout.row()
             #layout.prop(bpy.context.scene, "camera_list", text="Objects")
             #layout.operator("batch_render.select_object", "objects")
             layout.prop(it, 'markedForDeletion', text="Delete")
@@ -169,6 +182,13 @@ class OBJECT_OT_BatchRenderButton(bpy.types.Operator):
             sce.render.filepath = it.filepath
             sce.render.filepath += ("batch_" + str(batch_count) + "_" + str(it.reso_x) + "x" + str(it.reso_y) + "_")
             
+            i = 0
+            while (i < 20):
+                bpy.context.scene.layers[i] = it.layers[i].active
+                if (bpy.context.scene.layers[i] == True):
+                    print("Enabled layer " + str(i+1))
+                i += 1
+            
             print("Rendering frames: " + str(it.start_frame) + " - " + str(it.end_frame))
             print("At resolution " + str(it.reso_x) + "x" + str(it.reso_y) + " (" + str(it.reso_percentage) + "%)")
             if (rd.engine == 'CYCLES'):
@@ -201,6 +221,13 @@ class OBJECT_OT_BatchRenderAddNew(bpy.types.Operator):
         batcher.frame_ranges[last_item].reso_y = rd.resolution_y
         batcher.frame_ranges[last_item].camera = bpy.context.scene.camera.name
         batcher.frame_ranges[last_item].filepath = bpy.context.scene.render.filepath
+        i = 0
+        while (i < 20):
+            batcher.frame_ranges[last_item].layers.add()
+            if (bpy.context.scene.layers[i] == True):
+                batcher.frame_ranges[last_item].layers[i].active = True
+            i += 1
+            
         
         return {'FINISHED'}
 
