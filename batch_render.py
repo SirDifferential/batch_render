@@ -24,8 +24,8 @@
 bl_info = {
     "name": "Batch Render",
     "author": "Jesse Kaukonen",
-    "version": (1,2),
-    "blender": (2, 6, 5),
+    "version": (1,3),
+    "blender": (2, 6, 6),
     "location": "Render > Render",
     "description": "Set up multiple render tasks to be executed in sequence",
     "warning": "",
@@ -74,12 +74,12 @@ class RenderButtonsPanel():
     bl_context = "render"
 
 # Updates a list of objects used by a drop down menu
-def updateObjectList():
-    cameras = []
-    for index, obj in enumerate(bpy.context.scene.objects):
-    #if (obj.type == 'CAMERA'):
-        cameras.append((str(index), obj.name, str(index)))
-    bpy.types.Scene.camera_list = EnumProperty(name="Cameras", description="asd", items=cameras, default='0')
+#def updateObjectList():
+#    cameras = []
+#    for index, obj in enumerate(bpy.context.scene.objects):
+#    #if (obj.type == 'CAMERA'):
+#        cameras.append((str(index), obj.name, str(index)))
+#    bpy.types.Scene.camera_list = EnumProperty(name="Cameras", description="asd", items=cameras, default='0')
 
 # Box for selecting objects in a drop down menu
 # Thanks to Peter Roelants
@@ -260,7 +260,7 @@ class OBJECT_OT_BatchRenderRemove(bpy.types.Operator):
 def register():
     bpy.utils.register_module(__name__)
     bpy.types.Scene.batch_render = PointerProperty(type=BatchRenderData, name='Batch Render', description='Settings used for batch rendering')
-    updateObjectList()
+    #updateObjectList()
 
 def unregister():
     bpy.utils.unregister(__name__)
