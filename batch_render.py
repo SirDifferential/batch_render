@@ -25,7 +25,7 @@ bl_info = {
     "name": "Batch Render",
     "author": "Jesse Kaukonen",
     "version": (1,3),
-    "blender": (2, 6, 6),
+    "blender": (2, 6, 8),
     "location": "Render > Render",
     "description": "Set up multiple render tasks to be executed in sequence",
     "warning": "",
