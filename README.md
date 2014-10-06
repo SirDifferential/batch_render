@@ -3,4 +3,5 @@ This is a script for batch rendering some ranges of frames in Blender with diffe
 To use, add the script to blenderdir/2.65/scripts/addons/ and go to user preferences -> addons -> render -> and enable the script, click save default. The plugin is now visible at the bottom of the render panel.
 
 Read more at http://jessekaukonen.blogspot.fi/2013/02/batch-rendering-in-blender.html
+
 Or in the BlenderArtists thread: http://blenderartists.org/forum/showthread.php?281647-Setting-up-batch-render-tasks-(multiple-sequential-renders)
