@@ -24,8 +24,8 @@
 bl_info = {
     "name": "Batch Render",
     "author": "Jesse Kaukonen",
-    "version": (1,3),
-    "blender": (2, 6, 6),
+    "version": (1,4),
+    "blender": (2, 7, 2),
     "location": "Render > Render",
     "description": "Set up multiple render tasks to be executed in sequence",
     "warning": "",
@@ -162,7 +162,7 @@ class OBJECT_OT_BatchRenderButton(bpy.types.Operator):
         for it in batcher.frame_ranges:
             batch_count += 1
             print("***********")
-            if (it.end_frame <= it.start_frame):
+            if (it.end_frame < it.start_frame):
                 print("Skipped batch " + str(it.start_frame) + " - " + str(it.end_frame) + ": Start frame greater than end frame")
                 continue
             sce.frame_start = it.start_frame
